@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rendimiento del Vehículo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+    .input-calc {
+      background-color: #f8fafc;
+      border-color: #cbd5e1;
+    }
+    .input-user {
+      background-color: white;
+      border-color: #94a3b8;
+    }
+    .pb-safe-inset {
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+  <div class="container max-w-md mx-auto pb-safe-inset pb-6">
+    <!-- Header -->
+    <div class="text-center py-6 px-4">
+      <h1 class="text-2xl font-bold text-gray-800">⛽ Calculadora de Rendimiento</h1>
+      <p class="text-sm text-gray-600 mt-1">Controla el rendimiento de tu vehículo</p>
+    </div>
+
+    <!-- Formulario -->
+    <div class="bg-white rounded-2xl shadow-lg mx-4 p-5 border border-gray-100">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">📊 Datos del Tanqueo</h2>
+      <div class="space-y-4">
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Precio del galón ($)</label>
+          <input
+            type="text"
+            id="precio"
+            placeholder="3.500"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            oninput="formatNumber('precio'); calcularAutomaticamente()"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Pago total del tanqueo ($)</label>
+          <input
+            type="text"
+            id="pago"
+            placeholder="52.500"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ry-2 focus:ring-blue-500 focus:border-transparent"
+            oninput="formatNumber('pago'); calcularAutomaticamente()"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">
+            Galones tanqueados
+            <span class="text-xs text-gray-500"> (editable o calculado)</span>
+          </label>
+          <input
+            type="number"
+            id="galones"
+            step="0.01"
+            placeholder="15.0"
+            class="w-full px-4 py-3 border-2 border-blue-500 rounded-xl bg-white font-semibold"
+            oninput="marcarComoManual()"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Kilómetros recorridos (km)</label>
+          <input
+            type="number"
+            id="kilometros"
+            step="0.1"
+            placeholder="360"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            oninput="calcularRendimiento()"
+          />
+        </div>
+
+        <!-- Resultado -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4">
+          <h3 class="font-semibold text-blue-800 text-center">Rendimiento</h3>
+          <div id="resultado" class="text-2xl font-bold text-center text-blue-900 mt-1">-</div>
+        </div>
+
+        <!-- Botón de reset -->
+        <button
+          onclick="resetForm()"
+          class="w-full py-2 mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition"
+        >
+          🗑️ Limpiar datos
+        </button>
+      </div>
+    </div>
+
+    <!-- Notas -->
+    <div class="mx-4 mt-6 text-center">
+      <p class="text-xs text-gray-500 leading-relaxed">
+        Puedes escribir los <strong>galones manualmente</strong> o dejar que se calculen automáticamente<br>
+        como: <strong>pago / precio del galón</strong>.<br>
+        El rendimiento se calcula como: <strong>km recorridos / galones</strong>.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-8 px-4">
+      <p class="text-xs text-gray-500">
+        Desarrollado por <span class="font-semibold text-gray-700">William Salazar</span>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    let galonesManual = false;
+
+    // Formatear número con puntos de miles
+    function formatNumber(id) {
+      const input = document.getElementById(id);
+      let value = input.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+      if (value) {
+        input.value = Number(value).toLocaleString('es-ES');
+      }
+    }
+
+    // Obtener valor numérico limpio
+    function getNumber(id) {
+      const raw = document.getElementById(id).value.replace(/\./g, '');
+      return parseFloat(raw) || 0;
+    }
+
+    // Marcar que el usuario está ingresando galones manualmente
+    function marcarComoManual() {
+      galonesManual = true;
+    }
+
+    // Calcular automáticamente los galones si no se ingresaron manualmente
+    function calcularAutomaticamente() {
+      if (galonesManual) return;
+
+      const precio = getNumber("precio");
+      const pago = getNumber("pago");
+      const galonesInput = document.getElementById("galones");
+
+      if (precio > 0 && pago > 0) {
+        const galones = pago / precio;
+        galonesInput.value = galones.toFixed(2);
+      } else {
+        galonesInput.value = "";
+      }
+
+      calcularRendimiento();
+    }
+
+    // Calcular rendimiento: km / galones
+    function calcularRendimiento() {
+      const kilometros = parseFloat(document.getElementById("kilometros").value);
+      const galones = parseFloat(document.getElementById("galones").value);
+      const resultado = document.getElementById("resultado");
+
+      if (kilometros > 0 && galones > 0) {
+        const rendimiento = kilometros / galones;
+        resultado.textContent = `${rendimiento.toFixed(2)} km/gal`;
+      } else {
+        resultado.textContent = "-";
+      }
+    }
+
+    // Resetear todo
+    function resetForm() {
+      if (confirm("¿Estás seguro de limpiar todos los datos?")) {
+        document.getElementById("precio").value = "";
+        document.getElementById("pago").value = "";
+        document.getElementById("galones").value = "";
+        document.getElementById("kilometros").value = "";
+        document.getElementById("resultado").textContent = "-";
+        galonesManual = false;
+      }
+    }
+  </script>
+</body>
+</html>
