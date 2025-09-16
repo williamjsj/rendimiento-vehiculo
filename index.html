@@ -52,7 +52,7 @@
             type="text"
             id="pago"
             placeholder="52.500"
-            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ry-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             oninput="formatNumber('pago'); calcularAutomaticamente()"
           />
         </div>
@@ -90,13 +90,32 @@
           <div id="resultado" class="text-2xl font-bold text-center text-blue-900 mt-1">-</div>
         </div>
 
+        <!-- Botón de agregar al historial -->
+        <button
+          onclick="agregarAlHistorial()"
+          class="w-full py-3 mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2"
+        >
+          ⛽ Agregar a Historial
+        </button>
+
         <!-- Botón de reset -->
         <button
           onclick="resetForm()"
-          class="w-full py-2 mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition"
+          class="w-full py-2 mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition"
         >
           🗑️ Limpiar datos
         </button>
+      </div>
+    </div>
+
+    <!-- Historial de Tanqueos -->
+    <div class="bg-white rounded-2xl shadow-lg mx-4 p-5 border border-gray-100 mt-6">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">⛽ Historial de Últimos 5 Tanqueos</h2>
+      <div id="historial-container" class="space-y-3">
+        <!-- Los elementos del historial se generarán aquí dinámicamente -->
+        <div class="text-center text-gray-500 py-4">
+          No hay registros de tanqueos aún.
+        </div>
       </div>
     </div>
 
@@ -119,6 +138,7 @@
 
   <script>
     let galonesManual = false;
+    let historial = JSON.parse(localStorage.getItem('historialTanqueos')) || [];
 
     // Formatear número con puntos de miles
     function formatNumber(id) {
@@ -172,6 +192,88 @@
       }
     }
 
+    // Agregar tanqueo al historial
+    function agregarAlHistorial() {
+      const precio = getNumber("precio");
+      const pago = getNumber("pago");
+      const galones = parseFloat(document.getElementById("galones").value);
+      const kilometros = parseFloat(document.getElementById("kilometros").value);
+      const rendimiento = document.getElementById("resultado").textContent;
+
+      if (precio <= 0 || pago <= 0 || galones <= 0 || kilometros <= 0 || rendimiento === "-") {
+        alert("Por favor, completa todos los campos correctamente antes de agregar al historial.");
+        return;
+      }
+
+      const tanqueo = {
+        id: Date.now(),
+        fecha: new Date().toLocaleDateString('es-ES', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        precio: precio,
+        pago: pago,
+        galones: galones,
+        kilometros: kilometros,
+        rendimiento: rendimiento
+      };
+
+      historial.unshift(tanqueo);
+      if (historial.length > 5) {
+        historial.pop();
+      }
+
+      localStorage.setItem('historialTanqueos', JSON.stringify(historial));
+      mostrarHistorial();
+    }
+
+    // Mostrar historial en la interfaz
+    function mostrarHistorial() {
+      const container = document.getElementById('historial-container');
+      
+      if (historial.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-gray-500 py-4">
+            No hay registros de tanqueos aún.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = historial.map((tanqueo, index) => `
+        <div class="border-l-4 border-green-500 bg-green-50 p-3 rounded-r-lg">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs text-gray-500">${tanqueo.fecha}</p>
+              <p class="font-semibold text-green-800">${tanqueo.rendimiento}</p>
+              <p class="text-sm text-gray-600">${tanqueo.kilometros.toFixed(1)} km / ${tanqueo.galones.toFixed(2)} gal</p>
+            </div>
+            <button 
+              onclick="eliminarDelHistorial(${tanqueo.id})"
+              class="text-red-500 hover:text-red-700 text-xs font-bold"
+            >
+              ✕
+            </button>
+          </div>
+          <div class="text-xs text-gray-500 mt-1">
+            $${tanqueo.pago.toLocaleString('es-ES')} total | $${tanqueo.precio.toLocaleString('es-ES')}/gal
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Eliminar un registro del historial
+    function eliminarDelHistorial(id) {
+      if (confirm("¿Estás seguro de eliminar este registro del historial?")) {
+        historial = historial.filter(t => t.id !== id);
+        localStorage.setItem('historialTanqueos', JSON.stringify(historial));
+        mostrarHistorial();
+      }
+    }
+
     // Resetear todo
     function resetForm() {
       if (confirm("¿Estás seguro de limpiar todos los datos?")) {
@@ -183,6 +285,9 @@
         galonesManual = false;
       }
     }
+
+    // Inicializar historial al cargar la página
+    mostrarHistorial();
   </script>
 </body>
 </html>
